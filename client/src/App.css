@@ -1,0 +1,257 @@
+
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap");
+
+:root {
+  font-family: "DM Sans", sans-serif;
+  color: #edf1fa;
+  background: #080b13;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.app {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 50% 35%, #18203b 0%, transparent 55%),
+    #080b13;
+  padding: 0 7%;
+}
+
+.navbar {
+  height: 84px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ffffff12;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 19px;
+  font-weight: 700;
+  color: white;
+  text-decoration: none;
+}
+
+.brand-icon {
+  display: grid;
+  place-items: center;
+  width: 35px;
+  height: 35px;
+  background: #8a76ff;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.ai {
+  color: #9a8aff;
+}
+
+.status {
+  color: #b8c0d4;
+  font-size: 12px;
+  border: 1px solid #ffffff20;
+  padding: 8px 12px;
+  border-radius: 30px;
+}
+
+.hero {
+  max-width: 760px;
+  margin: 95px auto 80px;
+  text-align: center;
+}
+
+.eyebrow {
+  color: #a99bff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.pulse {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: #a99bff;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+h1 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: clamp(42px, 7vw, 76px);
+  line-height: 1.08;
+  letter-spacing: -3px;
+  margin: 25px 0 20px;
+}
+
+h1 span {
+  color: #9b8aff;
+}
+
+.subtitle {
+  max-width: 540px;
+  margin: 0 auto;
+  color: #9da8bf;
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.scan-form {
+  max-width: 590px;
+  margin: 42px auto 0;
+  text-align: left;
+}
+
+.scan-form label {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 10px;
+  color: #dbe1ef;
+}
+
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  background: #111726;
+  border: 1px solid #343d58;
+  border-radius: 13px;
+}
+
+.github-mark {
+  padding-left: 10px;
+  color: #9da8bf;
+  font-size: 20px;
+}
+
+.input-row input {
+  flex: 1;
+  min-width: 0;
+  color: white;
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 12px 0;
+}
+
+.input-row button {
+  color: white;
+  background: #7864f4;
+  border: 0;
+  border-radius: 8px;
+  padding: 13px 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.input-row button:hover {
+  background: #8c7bff;
+}
+
+.privacy-note {
+  color: #8d98ae;
+  font-size: 11px;
+  margin-top: 14px;
+}
+
+.message {
+  margin: 20px auto 0;
+  padding: 15px;
+  background: #151d31;
+  border: 1px solid #343d58;
+  border-radius: 10px;
+  color: #c6caff;
+  text-align: left;
+}
+
+.features {
+  max-width: 960px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.feature {
+  border: 1px solid #ffffff15;
+  border-radius: 15px;
+  background: #101522a8;
+  padding: 25px;
+}
+
+.feature-icon {
+  color: #a99bff;
+  font-size: 25px;
+}
+
+.feature h2 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 18px;
+}
+
+.feature p {
+  color: #98a4bb;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+footer {
+  text-align: center;
+  color: #68748c;
+  font-size: 10px;
+  letter-spacing: 2px;
+  padding: 65px 0 30px;
+}
+
+footer span {
+  color: #a99bff;
+}
+
+@media (max-width: 600px) {
+  .app {
+    padding: 0 5%;
+  }
+
+  .hero {
+    margin-top: 65px;
+  }
+
+  h1 {
+    letter-spacing: -2px;
+  }
+
+  .features {
+    grid-template-columns: 1fr;
+  }
+
+  .input-row {
+    flex-wrap: wrap;
+  }
+
+  .input-row input {
+    width: 60%;
+  }
+
+  .input-row button {
+    width: 100%;
+  }
+}
