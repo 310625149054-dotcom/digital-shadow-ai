@@ -3,13 +3,31 @@ import { useState } from "react";
 import "./App.css";
 
 const REMEDIATION_STEPS = [
-  "Review and confirm the finding.",
-  "Revoke the credential if it is genuine.",
-  "Rotate or replace it.",
-  "Move the secret to an environment variable and remove it from source code.",
-  "Remove the secret from Git history when appropriate.",
-  "Rescan to check whether the finding is still detected.",
+  { id: "review", label: "Review and confirm the finding." },
+  { id: "revoke", label: "Revoke the credential if it is genuine." },
+  { id: "rotate", label: "Rotate or replace it." },
+  {
+    id: "environment",
+    label:
+      "Move the secret to an environment variable and remove it from source code.",
+  },
+  {
+    id: "history",
+    label: "Remove the secret from Git history when appropriate.",
+  },
+  { id: "rescan", label: "Rescan to check whether the finding is still detected." },
 ];
+
+const PROVIDER_LINKS = {
+  "github-token": {
+    name: "GitHub",
+    url: "https://github.com/settings/personal-access-tokens",
+  },
+  "aws-access-key": {
+    name: "AWS IAM",
+    url: "https://console.aws.amazon.com/iam/home#/security_credentials",
+  },
+};
 
 function displayValue(value, fallback = "Not available") {
   return typeof value === "string" && value.trim()
@@ -30,12 +48,49 @@ function findingKey(finding, index) {
   );
 }
 
+function detectedLanguage(filePath) {
+  const extension = String(filePath || "").split(".").pop()?.toLowerCase();
+  const languages = {
+    js: "JavaScript",
+    cjs: "JavaScript",
+    mjs: "JavaScript",
+    ts: "TypeScript",
+    py: "Python",
+    rb: "Ruby",
+    go: "Go",
+    java: "Java",
+    php: "PHP",
+  };
+
+  return languages[extension] || "your application";
+}
+
+function environmentExamples(language) {
+  const usage = {
+    JavaScript: "const secret = process.env.APP_SECRET;",
+    TypeScript: "const secret = process.env.APP_SECRET;",
+    Python: "secret = os.environ[\"APP_SECRET\"]",
+    Ruby: "secret = ENV.fetch(\"APP_SECRET\")",
+    Go: "secret := os.Getenv(\"APP_SECRET\")",
+    Java: "String secret = System.getenv(\"APP_SECRET\");",
+    PHP: "$secret = getenv(\"APP_SECRET\");",
+  };
+
+  return {
+    env: "APP_SECRET=replace-with-the-rotated-value",
+    gitignore: ".env\n.env.*\n!.env.example",
+    usage: usage[language] || "Read APP_SECRET using your framework's environment configuration.",
+  };
+}
+
 export default function App() {
   const [username, setUsername] = useState("");
   const [message, setMessage] = useState("");
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [checklistState, setChecklistState] = useState({});
+  const [openAction, setOpenAction] = useState({});
+  const [copyMessage, setCopyMessage] = useState("");
 
   const summary = report?.summary;
   const hasRiskScore =
@@ -53,7 +108,7 @@ export default function App() {
       : "Scan status unavailable";
 
   async function handleScan(event) {
-    event.preventDefault();
+    event?.preventDefault();
 
     const cleanUsername = username.trim();
 
@@ -66,6 +121,7 @@ export default function App() {
     if (!valid) {
       setReport(null);
       setChecklistState({});
+      setOpenAction({});
       setMessage("Please enter a valid GitHub username.");
       return;
     }
@@ -73,6 +129,7 @@ export default function App() {
     setLoading(true);
     setReport(null);
     setChecklistState({});
+    setOpenAction({});
     setMessage("Connecting to GitHub...");
 
     try {
@@ -105,6 +162,24 @@ export default function App() {
       );
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function copyExample(value, label) {
+    if (!navigator.clipboard) {
+      setCopyMessage(
+        "Clipboard access is unavailable; select and copy the example."
+      );
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopyMessage(`${label} copied.`);
+    } catch {
+      setCopyMessage(
+        `Could not copy the ${label.toLowerCase()}; select and copy it instead.`
+      );
     }
   }
 
@@ -154,6 +229,7 @@ export default function App() {
                 setMessage("");
                 setReport(null);
                 setChecklistState({});
+                setOpenAction({});
               }}
               maxLength={39}
               autoComplete="off"
@@ -298,6 +374,9 @@ export default function App() {
               <ul className="findings-list">
                 {report.findings.map((finding, index) => {
                   const key = findingKey(finding, index);
+                  const language = detectedLanguage(finding.filePath);
+                  const examples = environmentExamples(language);
+                  const provider = PROVIDER_LINKS[finding.ruleId];
                   const severity = displayValue(
                     finding.severity,
                     "Unknown severity"
@@ -394,25 +473,198 @@ export default function App() {
                           {REMEDIATION_STEPS.map((step, stepIndex) => {
                             const checked =
                               checklistState[key]?.[stepIndex] === true;
+                            const actionIsOpen =
+                              openAction[key] === step.id;
 
                             return (
                               <li key={step}>
-                                <label>
-                                  <input
-                                    type="checkbox"
-                                    checked={checked}
-                                    onChange={() => {
-                                      setChecklistState((current) => ({
-                                        ...current,
-                                        [key]: {
-                                          ...current[key],
-                                          [stepIndex]: !checked,
-                                        },
-                                      }));
-                                    }}
-                                  />
-                                  <span>{step}</span>
-                                </label>
+                                <div className="checklist-row">
+                                  <label>
+                                    <input
+                                      type="checkbox"
+                                      checked={checked}
+                                      onChange={() => {
+                                        setChecklistState((current) => ({
+                                          ...current,
+                                          [key]: {
+                                            ...current[key],
+                                            [stepIndex]: !checked,
+                                          },
+                                        }));
+                                      }}
+                                    />
+                                    <span>{step.label}</span>
+                                  </label>
+                                  {step.id === "review" && hasSourceUrl ? (
+                                    <a
+                                      className="action-button"
+                                      href={finding.sourceUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                    >
+                                      Open source ↗
+                                    </a>
+                                  ) : (
+                                    <button
+                                      className="action-button"
+                                      type="button"
+                                      disabled={
+                                        (step.id === "review" && !hasSourceUrl) ||
+                                        (step.id === "rescan" && loading)
+                                      }
+                                      onClick={() => {
+                                        if (step.id === "rescan") {
+                                          handleScan();
+                                          return;
+                                        }
+
+                                        setCopyMessage("");
+                                        setOpenAction((current) => ({
+                                          ...current,
+                                          [key]: actionIsOpen
+                                            ? null
+                                            : step.id,
+                                        }));
+                                      }}
+                                    >
+                                      {step.id === "review"
+                                        ? "Source unavailable"
+                                        : step.id === "rescan"
+                                          ? "Run rescan"
+                                          : "Next step"}
+                                    </button>
+                                  )}
+                                </div>
+
+                                {actionIsOpen && step.id === "revoke" && (
+                                  <div className="action-panel">
+                                    {provider ? (
+                                      <>
+                                        <p>
+                                          Manage this possible {provider.name}{" "}
+                                          credential in the provider console.
+                                          Confirm the finding first, then
+                                          revoke only the credential you
+                                          recognize.
+                                        </p>
+                                        <a
+                                          className="action-button"
+                                          href={provider.url}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                        >
+                                          Open {provider.name} credential management ↗
+                                        </a>
+                                      </>
+                                    ) : (
+                                      <p>
+                                        The provider could not be identified
+                                        confidently. Sign in to the service
+                                        that owns this credential, locate its
+                                        credential-management page, and revoke
+                                        it there if confirmed. Do not share the
+                                        credential with this app.
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+
+                                {actionIsOpen && step.id === "rotate" && (
+                                  <div className="action-panel">
+                                    <p>
+                                      Create a new credential in the provider
+                                      console, update every application that
+                                      uses it, deploy the change, and verify
+                                      the application before disabling the old
+                                      credential.
+                                    </p>
+                                  </div>
+                                )}
+
+                                {actionIsOpen && step.id === "environment" && (
+                                  <div className="action-panel">
+                                    <p>
+                                      Detected language: {language}. Replace
+                                      the placeholder locally with the
+                                      rotated value; this app never displays
+                                      the detected value.
+                                    </p>
+                                    <label className="example-label" htmlFor={`${key}-env`}>
+                                      .env example
+                                    </label>
+                                    <textarea
+                                      id={`${key}-env`}
+                                      className="copy-example"
+                                      readOnly
+                                      value={examples.env}
+                                    />
+                                    <button
+                                      className="action-button"
+                                      type="button"
+                                      onClick={() =>
+                                        copyExample(
+                                          examples.env,
+                                          ".env example"
+                                        )
+                                      }
+                                    >
+                                      Copy .env example
+                                    </button>
+                                    <label className="example-label" htmlFor={`${key}-gitignore`}>
+                                      .gitignore example
+                                    </label>
+                                    <textarea
+                                      id={`${key}-gitignore`}
+                                      className="copy-example"
+                                      readOnly
+                                      value={examples.gitignore}
+                                    />
+                                    <button
+                                      className="action-button"
+                                      type="button"
+                                      onClick={() =>
+                                        copyExample(
+                                          examples.gitignore,
+                                          ".gitignore example"
+                                        )
+                                      }
+                                    >
+                                      Copy .gitignore example
+                                    </button>
+                                    <code className="usage-example">
+                                      {examples.usage}
+                                    </code>
+                                    {copyMessage && (
+                                      <p className="copy-status" role="status">
+                                        {copyMessage}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+
+                                {actionIsOpen && step.id === "history" && (
+                                  <div className="action-panel">
+                                    <p>
+                                      History rewriting can affect every
+                                      clone. Coordinate with collaborators,
+                                      make a backup, and follow your
+                                      organization&apos;s incident process.
+                                      Never run these commands against a shared
+                                      repository without approval.
+                                    </p>
+                                    <code className="command-example">
+                                      git filter-repo --path &lt;file&gt; --invert-paths
+                                      {"\n"}git push --force-with-lease --all
+                                    </code>
+                                    <p>
+                                      These commands are examples only. They
+                                      are not executed by Digital Shadow AI.
+                                      Rotate or revoke the credential first;
+                                      history removal alone does not invalidate
+                                      it.
+                                    </p>
+                                  </div>
+                                )}
                               </li>
                             );
                           })}

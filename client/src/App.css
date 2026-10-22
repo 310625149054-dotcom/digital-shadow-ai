@@ -413,6 +413,18 @@ h1 span {
   padding: 0;
 }
 
+.checklist > li {
+  display: grid;
+  gap: 10px;
+}
+
+.checklist-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
 .checklist label {
   display: flex;
   align-items: flex-start;
@@ -427,6 +439,80 @@ h1 span {
   flex: 0 0 auto;
   accent-color: #8a76ff;
   margin-top: 3px;
+}
+
+.action-button {
+  flex: 0 0 auto;
+  color: #dcd7ff;
+  background: #272143;
+  border: 1px solid #6658a8;
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.action-button:hover {
+  background: #352c5d;
+}
+
+.action-button:disabled {
+  color: #7f879a;
+  background: #171b28;
+  border-color: #353b4d;
+  cursor: not-allowed;
+}
+
+.action-panel {
+  display: grid;
+  gap: 10px;
+  margin-left: 28px;
+  padding: 13px;
+  background: #0d1321;
+  border: 1px solid #ffffff12;
+  border-radius: 8px;
+}
+
+.action-panel p {
+  font-size: 12px;
+}
+
+.example-label {
+  color: #dbe1ef;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.copy-example,
+.command-example,
+.usage-example {
+  display: block;
+  width: 100%;
+  padding: 9px;
+  color: #c6caff;
+  background: #080b13;
+  border: 1px solid #ffffff18;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.copy-example {
+  min-height: 52px;
+  resize: vertical;
+}
+
+.command-example,
+.usage-example {
+  margin: 0;
+}
+
+.copy-status {
+  color: #b7aaff !important;
+  font-size: 11px !important;
 }
 
 .finding-evidence {
