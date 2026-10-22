@@ -2,6 +2,15 @@
 import { useState } from "react";
 import "./App.css";
 
+const REMEDIATION_STEPS = [
+  "Review and confirm the finding.",
+  "Revoke the credential if it is genuine.",
+  "Rotate or replace it.",
+  "Move the secret to an environment variable and remove it from source code.",
+  "Remove the secret from Git history when appropriate.",
+  "Rescan to check whether the finding is still detected.",
+];
+
 function displayValue(value, fallback = "Not available") {
   return typeof value === "string" && value.trim()
     ? value
@@ -12,11 +21,21 @@ function severityClass(severity) {
   return String(severity || "unknown").toLowerCase();
 }
 
+function findingKey(finding, index) {
+  return (
+    finding.id ||
+    `${finding.repository || "unknown"}:${finding.filePath || "unknown"}:${
+      finding.lineNumber || index
+    }`
+  );
+}
+
 export default function App() {
   const [username, setUsername] = useState("");
   const [message, setMessage] = useState("");
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [checklistState, setChecklistState] = useState({});
 
   const summary = report?.summary;
   const hasRiskScore =
@@ -46,12 +65,14 @@ export default function App() {
 
     if (!valid) {
       setReport(null);
+      setChecklistState({});
       setMessage("Please enter a valid GitHub username.");
       return;
     }
 
     setLoading(true);
     setReport(null);
+    setChecklistState({});
     setMessage("Connecting to GitHub...");
 
     try {
@@ -132,6 +153,7 @@ export default function App() {
                 setUsername(event.target.value);
                 setMessage("");
                 setReport(null);
+                setChecklistState({});
               }}
               maxLength={39}
               autoComplete="off"
@@ -242,6 +264,15 @@ export default function App() {
                 : "Review findings and their evidence before making security decisions."}
             </p>
 
+            <div className="coverage-note" role="note">
+              <strong>Rescan reminder</strong>
+              <span>
+                A clean rescan only means this scanner did not detect this
+                pattern in the inspected resources. It does not prove a
+                credential is invalid or that the entire repository is secure.
+              </span>
+            </div>
+
             <div
               className={`coverage-note ${
                 isPartialScan ? "coverage-note-partial" : ""
@@ -266,6 +297,7 @@ export default function App() {
             {report.findings?.length > 0 ? (
               <ul className="findings-list">
                 {report.findings.map((finding, index) => {
+                  const key = findingKey(finding, index);
                   const severity = displayValue(
                     finding.severity,
                     "Unknown severity"
@@ -278,7 +310,7 @@ export default function App() {
 
                   return (
                     <li
-                      key={finding.id || `${finding.repository}-${finding.filePath}-${index}`}
+                      key={key}
                       className="finding-card"
                     >
                       <div className="finding-header">
@@ -349,6 +381,42 @@ export default function App() {
                             "No remediation steps were provided."
                           )}
                         </p>
+                      </div>
+
+                      <div className="finding-section remediation-checklist">
+                        <h4>Personalized cleanup plan</h4>
+                        <p className="checklist-intro">
+                          Track these steps for this finding. Checking a step
+                          does not revoke credentials, change repositories, or
+                          rewrite Git history automatically.
+                        </p>
+                        <ul className="checklist">
+                          {REMEDIATION_STEPS.map((step, stepIndex) => {
+                            const checked =
+                              checklistState[key]?.[stepIndex] === true;
+
+                            return (
+                              <li key={step}>
+                                <label>
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => {
+                                      setChecklistState((current) => ({
+                                        ...current,
+                                        [key]: {
+                                          ...current[key],
+                                          [stepIndex]: !checked,
+                                        },
+                                      }));
+                                    }}
+                                  />
+                                  <span>{step}</span>
+                                </label>
+                              </li>
+                            );
+                          })}
+                        </ul>
                       </div>
                     </li>
                   );
