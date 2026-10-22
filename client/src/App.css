@@ -173,6 +173,248 @@ h1 span {
   margin-top: 14px;
 }
 
+.results {
+  max-width: 960px;
+  margin: 0 auto 85px;
+}
+
+.results-header {
+  margin-bottom: 28px;
+}
+
+.results-header h2 {
+  font-family: "Space Grotesk", sans-serif;
+  margin: 12px 0 8px;
+}
+
+.results-header > p:last-child {
+  color: #9da8bf;
+  font-size: 13px;
+}
+
+.scan-status {
+  display: inline-block;
+  margin-top: 14px;
+  padding: 6px 10px;
+  border: 1px solid #ffffff20;
+  border-radius: 999px;
+  color: #b8c0d4;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+}
+
+.scan-status-partial {
+  color: #ffdca0;
+  border-color: #aa7b38;
+  background: #5c432333;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.summary-card {
+  padding: 18px;
+  border: 1px solid #ffffff15;
+  border-radius: 12px;
+  background: #101522a8;
+}
+
+.summary-card span {
+  display: block;
+  color: #8d98ae;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.summary-card strong {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 21px;
+}
+
+.panel {
+  padding: 24px;
+  margin-top: 20px;
+  border: 1px solid #ffffff15;
+  border-radius: 15px;
+  background: #101522a8;
+}
+
+.panel h2 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 22px;
+  margin: 0 0 15px;
+}
+
+.panel > p {
+  color: #aab4c8;
+  line-height: 1.7;
+}
+
+.coverage-note {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 20px 0;
+  padding: 12px 14px;
+  border-left: 3px solid #5b6b8f;
+  background: #111a2b;
+  color: #aab4c8;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.coverage-note strong {
+  color: #dbe1ef;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.coverage-note-partial {
+  border-left-color: #c18b3e;
+  background: #2b2115;
+}
+
+.coverage-note-partial strong {
+  color: #ffdca0;
+}
+
+.repository-list,
+.findings-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.repository-item {
+  padding: 15px 0;
+  border-top: 1px solid #ffffff12;
+}
+
+.repository-item a,
+.finding-location a {
+  color: #b7aaff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.repository-item a:hover,
+.finding-location a:hover {
+  text-decoration: underline;
+}
+
+.repository-item p,
+.repository-item small {
+  display: block;
+  color: #98a4bb;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-top: 7px;
+}
+
+.finding-card {
+  padding: 22px 0;
+  border-top: 1px solid #ffffff12;
+}
+
+.finding-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.finding-header h3 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 18px;
+  line-height: 1.35;
+  margin: 0 0 10px;
+}
+
+.severity-badge {
+  display: inline-block;
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: #f3f0ff;
+  background: #5a4bc0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+
+.severity-high {
+  background: #a0495d;
+}
+
+.severity-medium {
+  background: #987438;
+}
+
+.severity-low,
+.severity-informational {
+  background: #3d668f;
+}
+
+.severity-unknown {
+  background: #525a70;
+}
+
+.finding-location {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 18px 0;
+  color: #aab4c8;
+  font-size: 12px;
+}
+
+.finding-location span {
+  overflow-wrap: anywhere;
+}
+
+.finding-location strong {
+  color: #dbe1ef;
+}
+
+.finding-section {
+  margin-top: 18px;
+}
+
+.finding-section h4 {
+  color: #dbe1ef;
+  font-size: 12px;
+  letter-spacing: 0.8px;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.finding-section p {
+  color: #aab4c8;
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.finding-evidence {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  padding: 12px;
+  color: #c6caff;
+  background: #0b0f1b;
+  border: 1px solid #ffffff12;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .message {
   margin: 20px auto 0;
   padding: 15px;
@@ -241,6 +483,14 @@ footer span {
 
   .features {
     grid-template-columns: 1fr;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel {
+    padding: 20px;
   }
 
   .input-row {

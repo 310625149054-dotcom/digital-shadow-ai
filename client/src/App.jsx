@@ -2,11 +2,36 @@
 import { useState } from "react";
 import "./App.css";
 
+function displayValue(value, fallback = "Not available") {
+  return typeof value === "string" && value.trim()
+    ? value
+    : fallback;
+}
+
+function severityClass(severity) {
+  return String(severity || "unknown").toLowerCase();
+}
+
 export default function App() {
   const [username, setUsername] = useState("");
   const [message, setMessage] = useState("");
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const summary = report?.summary;
+  const hasRiskScore =
+    typeof summary?.score === "number" &&
+    Number.isFinite(summary.score) &&
+    typeof summary.riskLevel === "string";
+  const riskLabel = hasRiskScore
+    ? `${summary.riskLevel.replace("_", " ")} · ${summary.score}/100`
+    : "Not assessed";
+  const isPartialScan = report?.status === "partial";
+  const scanStatusLabel = isPartialScan
+    ? "Partial scan"
+    : report?.status === "completed"
+      ? "Completed scan"
+      : "Scan status unavailable";
 
   async function handleScan(event) {
     event.preventDefault();
@@ -139,6 +164,13 @@ export default function App() {
               Public repositories retrieved:{" "}
               {report.repositories?.length ?? 0}
             </p>
+            <span
+              className={`scan-status ${
+                isPartialScan ? "scan-status-partial" : ""
+              }`}
+            >
+              {scanStatusLabel}
+            </span>
           </div>
 
           <div className="summary-grid">
@@ -152,17 +184,13 @@ export default function App() {
             <article className="summary-card">
               <span>Findings</span>
               <strong>
-                {report.summary?.findingsCount ?? 0}
+                {summary?.findingsCount ?? "Unavailable"}
               </strong>
             </article>
 
             <article className="summary-card">
               <span>Risk assessment</span>
-              <strong>
-                {["high", "medium"].includes(report.summary?.riskLevel)
-                  ? report.summary.riskLevel
-                  : "Not assessed"}
-              </strong>
+              <strong>{riskLabel}</strong>
             </article>
           </div>
 
@@ -214,16 +242,120 @@ export default function App() {
                 : "Review findings and their evidence before making security decisions."}
             </p>
 
-            {report.findings?.length > 0 && (
-              <ul>
-                {report.findings.map((finding) => (
-                  <li key={finding.id}>
-                    <strong>{finding.severity}</strong>
-                    {" — "}
-                    {finding.category}
-                  </li>
-                ))}
+            <div
+              className={`coverage-note ${
+                isPartialScan ? "coverage-note-partial" : ""
+              }`}
+              role="status"
+            >
+              <strong>
+                {isPartialScan
+                  ? "Partial coverage"
+                  : "Coverage"}
+              </strong>
+              <span>
+                {displayValue(
+                  summary?.coverageNote,
+                  isPartialScan
+                    ? "Some resources may not have been inspected. This result does not represent a complete account scan."
+                    : "Selected public resources were inspected. No findings does not prove the account is secure."
+                )}
+              </span>
+            </div>
+
+            {report.findings?.length > 0 ? (
+              <ul className="findings-list">
+                {report.findings.map((finding, index) => {
+                  const severity = displayValue(
+                    finding.severity,
+                    "Unknown severity"
+                  );
+                  const hasLineNumber =
+                    typeof finding.lineNumber === "number";
+                  const hasSourceUrl =
+                    typeof finding.sourceUrl === "string" &&
+                    finding.sourceUrl.trim();
+
+                  return (
+                    <li
+                      key={finding.id || `${finding.repository}-${finding.filePath}-${index}`}
+                      className="finding-card"
+                    >
+                      <div className="finding-header">
+                        <div>
+                          <h3>
+                            {displayValue(
+                              finding.title,
+                              "Untitled finding"
+                            )}
+                          </h3>
+                          <span
+                            className={`severity-badge severity-${severityClass(
+                              finding.severity
+                            )}`}
+                          >
+                            {severity}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="finding-location">
+                        <span>
+                          <strong>Repository</strong>{" "}
+                          {displayValue(finding.repository)}
+                        </span>
+                        <span>
+                          <strong>File</strong>{" "}
+                          {displayValue(finding.filePath)}
+                        </span>
+                        {hasLineNumber && (
+                          <span>
+                            <strong>Line</strong> {finding.lineNumber}
+                          </span>
+                        )}
+                        {hasSourceUrl && (
+                          <a
+                            href={finding.sourceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            View source ↗
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="finding-section">
+                        <h4>Redacted evidence</h4>
+                        <code className="finding-evidence">
+                          {displayValue(finding.evidence)}
+                        </code>
+                      </div>
+
+                      <div className="finding-section">
+                        <h4>Why it matters</h4>
+                        <p>
+                          {displayValue(
+                            finding.description,
+                            "No explanation was provided."
+                          )}
+                        </p>
+                      </div>
+
+                      <div className="finding-section">
+                        <h4>Remediation</h4>
+                        <p>
+                          {displayValue(
+                            finding.remediation,
+                            "No remediation steps were provided."
+                          )}
+                        </p>
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
+            ) : (
+              <p>No security findings were detected in the inspected files.</p>
             )}
           </div>
         </section>

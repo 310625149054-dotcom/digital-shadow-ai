@@ -7,6 +7,14 @@ export const MAX_FINDINGS = 100;
 const SKIP_EXTENSIONS =
   /\.(png|jpg|jpeg|gif|webp|ico|pdf|zip|gz|woff2?|ttf|mp4|mp3)$/i;
 
+const isDevelopment = process.env.NODE_ENV !== "production";
+
+function logDiagnostic(event, details) {
+  if (isDevelopment) {
+    console.warn(`[scanner] ${event}`, details);
+  }
+}
+
 const SECRET_RULES = [
   {
     id: "github-token",
@@ -50,7 +58,11 @@ async function githubGet(url) {
   });
 
   if (!response.ok) {
-    const error = new Error(`GitHub returned HTTP ${response.status}`);
+    logDiagnostic("GitHub API request failed", {
+      status: response.status,
+      url: new URL(url).pathname,
+    });
+    const error = new Error("GitHub API request failed.");
     error.status = response.status;
     throw error;
   }
@@ -66,18 +78,24 @@ export function scanText(
   const findings = [];
 
   for (const rule of SECRET_RULES) {
+    // Reset global regex state before scanning each file.
     rule.pattern.lastIndex = 0;
 
     let match;
+
     while ((match = rule.pattern.exec(text)) !== null) {
-      const lineNumber = text.slice(0, match.index).split("\n").length;
+      const lineNumber =
+        text.slice(0, match.index).split("\n").length;
 
       findings.push({
         id: `${repository}:${filePath}:${lineNumber}:${rule.id}`,
+        ruleId: rule.id,
+        title: rule.description,
         category: rule.category,
         severity: rule.severity,
         confidence: "medium",
-        description: rule.description,
+        description:
+          "A pattern associated with a possible exposed credential was detected. Its validity has not been verified.",
         repository,
         filePath,
         lineNumber,
@@ -87,8 +105,9 @@ export function scanText(
           `${filePath.split("/").map(encodeURIComponent).join("/")}` +
           `#L${lineNumber}`,
         remediation:
-          "Verify the finding. If it is a genuine credential, revoke " +
-          "and rotate it, then move secrets to environment variables.",
+          "Review the source. If a genuine credential was exposed, " +
+          "revoke or rotate it, then remove it from the source and " +
+          "repository history as appropriate.",
       });
 
       if (findings.length >= remainingFindings) {
@@ -108,9 +127,23 @@ export async function scanRepositories(username, repositories) {
   const findings = [];
   let filesInspected = 0;
   let repositoriesInspected = 0;
+  let filesSkipped = 0;
+  let repositoriesSkipped = 0;
+  let truncated = false;
 
-  for (const repo of repositories.slice(0, MAX_REPOSITORIES)) {
+  const selectedRepositories = repositories.slice(0, MAX_REPOSITORIES);
+
+  if (repositories.length > MAX_REPOSITORIES) {
+    truncated = true;
+  }
+
+  for (const repo of selectedRepositories) {
     try {
+      if (!repo.default_branch || !repo.name || !repo.html_url) {
+        repositoriesSkipped++;
+        continue;
+      }
+
       const treeUrl =
         `https://api.github.com/repos/${encodeURIComponent(username)}/` +
         `${encodeURIComponent(repo.name)}/git/trees/` +
@@ -119,15 +152,20 @@ export async function scanRepositories(username, repositories) {
       const tree = await githubGet(treeUrl);
       repositoriesInspected++;
 
-      const files = (tree.tree || [])
-        .filter(
-          (item) =>
-            item.type === "blob" &&
-            item.size > 0 &&
-            item.size <= MAX_FILE_BYTES &&
-            !SKIP_EXTENSIONS.test(item.path)
-        )
-        .slice(0, MAX_FILES_PER_REPOSITORY);
+      if (tree.truncated) {
+        truncated = true;
+      }
+
+      const allFiles = (tree.tree || []).filter(
+        (item) =>
+          item.type === "blob" &&
+          item.size > 0 &&
+          item.size <= MAX_FILE_BYTES &&
+          !SKIP_EXTENSIONS.test(item.path)
+      );
+
+      const files = allFiles.slice(0, MAX_FILES_PER_REPOSITORY);
+      filesSkipped += allFiles.length - files.length;
 
       for (const file of files) {
         const rawUrl =
@@ -142,14 +180,32 @@ export async function scanRepositories(username, repositories) {
           response = await fetch(rawUrl, {
             signal: AbortSignal.timeout(8000),
           });
-        } catch {
+        } catch (error) {
+          logDiagnostic("Raw file request failed", {
+            repository: repo.name,
+            filePath: file.path,
+            error: error?.name || "UnknownError",
+          });
+          filesSkipped++;
           continue;
         }
 
-        if (!response.ok) continue;
+        if (!response.ok) {
+          logDiagnostic("Raw file request returned an error", {
+            repository: repo.name,
+            filePath: file.path,
+            status: response.status,
+          });
+          filesSkipped++;
+          continue;
+        }
 
         const text = await response.text();
-        if (text.length > MAX_FILE_BYTES) continue;
+
+        if (Buffer.byteLength(text, "utf8") > MAX_FILE_BYTES) {
+          filesSkipped++;
+          continue;
+        }
 
         filesInspected++;
 
@@ -163,6 +219,7 @@ export async function scanRepositories(username, repositories) {
           },
           MAX_FINDINGS - findings.length
         );
+
         findings.push(...scan.findings);
 
         if (scan.truncated) {
@@ -170,14 +227,19 @@ export async function scanRepositories(username, repositories) {
             findings,
             filesInspected,
             repositoriesInspected,
+            filesSkipped,
+            repositoriesSkipped,
             truncated: true,
           };
         }
       }
     } catch (error) {
-      console.warn(
-        `Skipped repository ${repo.name}: ${error.message}`
-      );
+      logDiagnostic("Repository scan failed", {
+        repository: repo.name || "unknown",
+        error: error?.name || "UnknownError",
+        status: error?.status,
+      });
+      repositoriesSkipped++;
     }
   }
 
@@ -185,6 +247,8 @@ export async function scanRepositories(username, repositories) {
     findings,
     filesInspected,
     repositoriesInspected,
-    truncated: false,
+    filesSkipped,
+    repositoriesSkipped,
+    truncated,
   };
 }
