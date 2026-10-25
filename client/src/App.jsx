@@ -2,6 +2,9 @@
 import { useState } from "react";
 import "./App.css";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000";
+
 const REMEDIATION_STEPS = [
   { id: "review", label: "Review and confirm the finding." },
   { id: "revoke", label: "Revoke the credential if it is genuine." },
@@ -134,7 +137,7 @@ export default function App() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/scans",
+        `${API_BASE_URL}/api/scans`,
         {
           method: "POST",
           headers: {
