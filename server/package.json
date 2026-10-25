@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "start": "node src/app.js",
     "test": "node --test test/*.test.js",
     "dev": "nodemon src/app.js"
   },
