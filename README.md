@@ -275,7 +275,8 @@ npm run preview
 - GitHub API availability and rate limits can prevent a scan from completing.
 - Pattern matches can be false positives and are not verified against the
   credential provider.
-- The frontend currently uses a local API URL (`http://localhost:5000`).
+- The frontend uses `VITE_API_URL` when provided, the deployed Render API in
+  production, and `http://localhost:5000` during local development.
 - The MVP has no authenticated user accounts, persistence, scheduled scans, or
   background job queue.
 - There is no automated frontend component test suite; frontend validation is
@@ -285,7 +286,7 @@ npm run preview
 
 Potential next steps include:
 
-- Add configurable API and frontend deployment URLs.
+- Add a deployment configuration guide for the frontend and backend URLs.
 - Add authenticated, consent-based scanning for additional repository scopes.
 - Add broader secret detectors with provider-specific validation.
 - Add persistent scan history and exportable reports.

@@ -5,13 +5,18 @@ import { calculateRisk } from "./risk.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const allowedOrigins = [
+  "https://digital-shadow-ai.netlify.app",
+  "http://localhost:5173",
+  "http://localhost:5176",
+  ...(process.env.CLIENT_ORIGIN ? [process.env.CLIENT_ORIGIN] : []),
+];
 
 app.use(
   cors({
-    origin: [
-      process.env.CLIENT_ORIGIN || "http://localhost:5173",
-      "http://localhost:5176",
-    ],
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
   })
 );
 app.use(express.json({ limit: "10kb" }));

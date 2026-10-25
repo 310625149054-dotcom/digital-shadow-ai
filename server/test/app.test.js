@@ -6,7 +6,7 @@ process.env.NODE_ENV = "test";
 
 const { app } = await import("../src/app.js");
 
-function postScan(port, body) {
+function postScan(port, body, origin) {
   return new Promise((resolve, reject) => {
     const requestBody = JSON.stringify(body);
     const clientRequest = request(
@@ -18,6 +18,7 @@ function postScan(port, body) {
         headers: {
           "Content-Type": "application/json",
           "Content-Length": Buffer.byteLength(requestBody),
+          ...(origin ? { Origin: origin } : {}),
         },
       },
       (response) => {
@@ -30,6 +31,7 @@ function postScan(port, body) {
         response.on("end", () => {
           resolve({
             status: response.statusCode,
+            headers: response.headers,
             data: JSON.parse(responseBody),
           });
         });
@@ -40,6 +42,91 @@ function postScan(port, body) {
     clientRequest.end(requestBody);
   });
 }
+
+function preflight(port, origin) {
+  return new Promise((resolve, reject) => {
+    const clientRequest = request(
+      {
+        hostname: "127.0.0.1",
+        port,
+        path: "/api/scans",
+        method: "OPTIONS",
+        headers: {
+          Origin: origin,
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers": "Content-Type",
+        },
+      },
+      (response) => {
+        resolve({
+          status: response.statusCode,
+          headers: response.headers,
+        });
+      }
+    );
+
+    clientRequest.on("error", reject);
+    clientRequest.end();
+  });
+}
+
+test("allows configured frontend origins to preflight scan requests", async () => {
+  const server = createServer(app);
+
+  try {
+    await new Promise((resolve) => server.listen(0, resolve));
+    const { port } = server.address();
+    for (const origin of [
+      "https://digital-shadow-ai.netlify.app",
+      "http://localhost:5173",
+      "http://localhost:5176",
+    ]) {
+      const response = await preflight(port, origin);
+
+      assert.equal(response.status, 204);
+      assert.equal(response.headers["access-control-allow-origin"], origin);
+      assert.match(response.headers["access-control-allow-methods"], /POST/);
+      assert.match(
+        response.headers["access-control-allow-headers"],
+        /Content-Type/i
+      );
+    }
+  } finally {
+    server.close();
+  }
+});
+
+test("validates GitHub usernames and includes CORS headers on POST", async () => {
+  const originalFetch = globalThis.fetch;
+  const server = createServer(app);
+  const origin = "https://digital-shadow-ai.netlify.app";
+
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify([]), { status: 200 });
+
+  try {
+    await new Promise((resolve) => server.listen(0, resolve));
+    const { port } = server.address();
+
+    for (const username of ["-user", "user-", "user_name", "a".repeat(40)]) {
+      const response = await postScan(port, { username }, origin);
+
+      assert.equal(response.status, 400);
+      assert.equal(response.data.error.code, "INVALID_USERNAME");
+      assert.equal(response.headers["access-control-allow-origin"], origin);
+    }
+
+    const validResponse = await postScan(port, { username: "a" }, origin);
+    assert.equal(validResponse.status, 200);
+    assert.equal(
+      validResponse.headers["access-control-allow-origin"],
+      origin
+    );
+  } finally {
+    server.close();
+    globalThis.fetch = originalFetch;
+  }
+});
 
 test("returns partial status and coverage note when a repository is skipped", async () => {
   const originalFetch = globalThis.fetch;
